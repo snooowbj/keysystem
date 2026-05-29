@@ -603,8 +603,21 @@ if (command === "!keys") {
             return message.reply(
                 "❌ Key não encontrada."
             );
-        }
+        }  
+        
+        if (action === "destruir") {
 
+    db.data.keys =
+        db.data.keys.filter(
+            k => k.key !== key
+        );
+
+    await db.write();
+
+    return message.reply(
+        "🗑️ Key destruída permanentemente."
+    );
+}
         if (
             action === "desativar"
         ) {
@@ -662,61 +675,55 @@ if (command === "!keys") {
 
     if (command === "!promover") {
 
-        if (level < 2) {
+    if (level < 2) {
+        return message.reply("❌ Sem permissão.");
+    }
 
-            return message.reply(
-                "❌ Sem permissão."
-            );
-        }
+    const target =
+        message.mentions.users.first()
+        ||
+        await client.users.fetch(args[1]).catch(() => null);
 
-        const target =
-            message.mentions.users.first()
-            ||
-            await client.users.fetch(
-                args[1]
-            ).catch(() => null);
+    if (!target) {
+        return message.reply("❌ Usuário inválido.");
+    }
 
-        const targetLevel =
-            Number(args[2]);
+    const newLevel = parseInt(args[2]);
 
-        if (!target) {
-
-            return message.reply(
-                "❌ Usuário inválido."
-            );
-        }
-
-        if (
-            level === 2 &&
-            targetLevel !== 1
-        ) {
-
-            return message.reply(
-                "❌ Level 2 só promove para 1."
-            );
-        }
-
-        if (
-            level === 3 &&
-            targetLevel > 2
-        ) {
-
-            return message.reply(
-                "❌ Máximo level 2."
-            );
-        }
-
-        setLevel(
-            target.id,
-            targetLevel
-        );
-
-        await db.write();
-
+    if (isNaN(newLevel)) {
         return message.reply(
-            `✅ ${target.username} agora é level ${targetLevel}`
+            "❌ Use: !promover @user 1 ou !promover @user 2"
         );
     }
+
+    if (level === 2) {
+
+        if (newLevel !== 1) {
+
+            return message.reply(
+                "❌ Você só pode promover para nível 1."
+            );
+        }
+    }
+
+    if (level === 3) {
+
+        if (newLevel > 2 || newLevel < 0) {
+
+            return message.reply(
+                "❌ Nível máximo permitido é 2."
+            );
+        }
+    }
+
+    setLevel(target.id, newLevel);
+
+    await db.write();
+
+    return message.reply(
+        `✅ ${target.username} promovido para nível ${newLevel}`
+    );
+}
 
     /* ================================================= */
     /* REBAIXAR */
