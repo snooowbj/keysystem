@@ -95,14 +95,6 @@ client.on("messageCreate", async (message) => {
         return message.reply("❌ Você não tem cargo para gerar key.");
     }
 
-    /* já possui key */
-    const existing = getUserKey(message.author.id);
-
-    if (existing) {
-        return message.reply(
-            `🔑 Sua key já existe:\n\`${existing.key}\``
-        );
-    }
 
     const key = uuidv4();
 
