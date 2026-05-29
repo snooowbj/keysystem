@@ -2,7 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const { Client, GatewayIntentBits } = require("discord.js");
-const sqlite3 = require("sqlite3").verbose();
+const Database = require("better-sqlite3");
 const { v4: uuidv4 } = require("uuid");
 
 const app = express();
@@ -13,16 +13,16 @@ app.get("/", (req, res) => {
     res.send("API online");
 });
 
-const db = new sqlite3.Database("./keys.db");
+const db = new Database("./keys.db");
 
-db.run(`
+db.prepare(`
 CREATE TABLE IF NOT EXISTS keys (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     key TEXT,
     discord_id TEXT,
     expires TEXT
 )
-`);
+`).run();
 
 const client = new Client({
     intents: [
@@ -47,13 +47,13 @@ client.on("messageCreate", (message) => {
         const expires = new Date();
         expires.setDate(expires.getDate() + 30);
 
-        db.run(
-            "INSERT INTO keys (key, discord_id, expires) VALUES (?, ?, ?)",
-            [
-                key,
-                message.author.id,
-                expires.toISOString()
-            ]
+        db.prepare(`
+            INSERT INTO keys (key, discord_id, expires)
+            VALUES (?, ?, ?)
+        `).run(
+            key,
+            message.author.id,
+            expires.toISOString()
         );
 
         message.reply(
@@ -66,39 +66,38 @@ app.post("/verify", (req, res) => {
 
     const { key } = req.body;
 
-    db.get(
-        "SELECT * FROM keys WHERE key = ?",
-        [key],
-        (err, row) => {
+    const row = db
+        .prepare("SELECT * FROM keys WHERE key = ?")
+        .get(key);
 
-            if (!row) {
-                return res.json({
-                    valid: false,
-                    reason: "invalid_key"
-                });
-            }
+    if (!row) {
+        return res.json({
+            valid: false,
+            reason: "invalid_key"
+        });
+    }
 
-            const now = new Date();
-            const expires = new Date(row.expires);
+    const now = new Date();
+    const expires = new Date(row.expires);
 
-            if (now > expires) {
-                return res.json({
-                    valid: false,
-                    reason: "expired"
-                });
-            }
+    if (now > expires) {
+        return res.json({
+            valid: false,
+            reason: "expired"
+        });
+    }
 
-            res.json({
-                valid: true,
-                discord_id: row.discord_id,
-                expires: row.expires
-            });
-        }
-    );
+    res.json({
+        valid: true,
+        discord_id: row.discord_id,
+        expires: row.expires
+    });
 });
 
 client.login(process.env.TOKEN);
 
-app.listen(3000, () => {
-    console.log("API rodando na porta 3000");
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`API rodando na porta ${PORT}`);
 });
