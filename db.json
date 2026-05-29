@@ -1,12 +1,15 @@
 {
   "keys": [
     {
-      "key": "c7b795ce-7683-48a9-a733-98f6a789bd28",
-      "discord_id": "933025502095102012",
+      "key": "cb8a9b39-dbbe-4f82-a818-2cf8ab6773e5",
       "hwid": null,
-      "plan": "7d",
-      "expires": "2026-06-05T14:17:16.982Z",
-      "revoked": false
+      "revoked": false,
+      "expires": "2026-06-28T15:37:35.485Z",
+      "duration": "30d",
+      "createdAt": "2026-05-29T15:37:35.486Z",
+      "ownerId": "933025502095102012",
+      "roleType": "30d"
     }
-  ]
+  ],
+  "staff": {}
 }
