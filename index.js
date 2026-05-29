@@ -1,11 +1,22 @@
 require("dotenv").config();
 
 const express = require("express");
-const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
+
+const {
+	Client,
+	GatewayIntentBits,
+	EmbedBuilder
+} = require("discord.js");
+
 const { v4: uuidv4 } = require("uuid");
 
 const { Low } = require("lowdb");
+
 const { JSONFile } = require("lowdb/node");
+
+/* ===================================================== */
+/* APP */
+/* ===================================================== */
 
 const app = express();
 
@@ -15,33 +26,49 @@ app.use(express.json());
 /* DATABASE */
 /* ===================================================== */
 
-const adapter = new JSONFile("./db.json");
+const adapter =
+	new JSONFile("./db.json");
 
-const db = new Low(adapter, {
-    keys: [],
-    staff: {}
-});
+const db =
+	new Low(adapter, {
+
+		keys: [],
+		staff: {}
+	});
 
 /* ===================================================== */
 /* CONFIG */
 /* ===================================================== */
 
-const TOKEN = process.env.TOKEN;
+const TOKEN =
+	process.env.TOKEN;
 
-const PORT = process.env.PORT || 3000;
+const PORT =
+	process.env.PORT || 3000;
 
-const CHANNEL_KEY = "1509913554692735016";
+const PREFIX = "!";
+
+const CHANNEL_KEY =
+	"1509913554692735016";
 
 const OWNER_IDS = [
-    "933025502095102012",
-    "1504981387294281768"
+
+	"933025502095102012",
+	"1504981387294281768"
 ];
 
+/* ===================================================== */
 /* ROLES */
+/* ===================================================== */
 
-const ROLE_7D = "1509913837661458594";
-const ROLE_30D = "1509913884868477039";
-const ROLE_INF = "1509913892703305748";
+const ROLE_7D =
+	"1509913837661458594";
+
+const ROLE_30D =
+	"1509913884868477039";
+
+const ROLE_INF =
+	"1509913892703305748";
 
 /* ===================================================== */
 /* HELPERS */
@@ -49,150 +76,211 @@ const ROLE_INF = "1509913892703305748";
 
 function getLevel(userId) {
 
-    if (OWNER_IDS.includes(userId)) {
-        return 3;
-    }
+	if (
+		OWNER_IDS.includes(userId)
+	) {
 
-    return db.data.staff[userId] || 0;
+		return 3;
+	}
+
+	return (
+		db.data.staff[userId]
+		||
+		0
+	);
 }
 
 function setLevel(userId, level) {
 
-    db.data.staff[userId] = level;
+	db.data.staff[userId] =
+		level;
 }
 
 function parseDuration(input) {
 
-    if (!input) return null;
+	if (!input) return null;
 
-    input = input.toLowerCase();
+	input =
+		input.toLowerCase();
 
-    if (input === "inf") {
+	if (input === "inf") {
 
-        return {
-            infinite: true,
-            ms: null
-        };
-    }
+		return {
 
-    const match =
-        input.match(/^(\d+)([dhm])$/);
+			infinite: true,
 
-    if (!match) return null;
+			ms: null
+		};
+	}
 
-    const value = Number(match[1]);
+	const match =
+		input.match(
+			/^(\d+)([dhm])$/
+		);
 
-    const unit = match[2];
+	if (!match) return null;
 
-    let ms = 0;
+	const value =
+		Number(match[1]);
 
-    if (unit === "d") {
-        ms = value * 24 * 60 * 60 * 1000;
-    }
+	const unit =
+		match[2];
 
-    if (unit === "h") {
-        ms = value * 60 * 60 * 1000;
-    }
+	let ms = 0;
 
-    if (unit === "m") {
-        ms = value * 60 * 1000;
-    }
+	if (unit === "d") {
 
-    return {
-        infinite: false,
-        ms
-    };
+		ms =
+			value
+			*
+			24
+			*
+			60
+			*
+			60
+			*
+			1000;
+	}
+
+	if (unit === "h") {
+
+		ms =
+			value
+			*
+			60
+			*
+			60
+			*
+			1000;
+	}
+
+	if (unit === "m") {
+
+		ms =
+			value
+			*
+			60
+			*
+			1000;
+	}
+
+	return {
+
+		infinite: false,
+
+		ms
+	};
 }
 
-function createKey(durationText, customKey = null) {
+function createKey(
+	durationText,
+	customKey = null
+) {
 
-    const parsed = parseDuration(durationText);
+	const parsed =
+		parseDuration(
+			durationText
+		);
 
-    if (!parsed) return null;
+	if (!parsed) return null;
 
-    let expires = null;
+	let expires = null;
 
-    if (!parsed.infinite) {
+	if (!parsed.infinite) {
 
-        expires =
-            new Date(
-                Date.now() + parsed.ms
-            ).toISOString();
-    }
+		expires =
+			new Date(
 
-    return {
+				Date.now()
+				+
+				parsed.ms
 
-        key:
-            customKey || uuidv4(),
+			).toISOString();
+	}
 
-        hwid: null,
+	return {
 
-        revoked: false,
+		key:
+			customKey
+			||
+			uuidv4(),
 
-        expires,
+		hwid: null,
 
-        duration: durationText,
+		revoked: false,
 
-        createdAt:
-            new Date().toISOString()
-    };
+		expires,
+
+		duration:
+			durationText,
+
+		createdAt:
+			new Date().toISOString()
+	};
 }
 
 function isExpired(keyData) {
 
-    if (!keyData.expires) {
-        return false;
-    }
+	if (!keyData.expires) {
 
-    return (
-        new Date(keyData.expires) <
-        new Date()
-    );
-}
+		return false;
+	}
 
-function canGenerateRoleKey(userId, roleType) {
+	return (
 
-    const existing =
-        db.data.keys.find(
-            k =>
-                k.ownerId === userId &&
-                k.roleType === roleType &&
-                !k.revoked &&
-                !isExpired(k)
-        );
+		new Date(
+			keyData.expires
+		)
 
-    return !existing;
+		<
+
+		new Date()
+	);
 }
 
 function formatExpire(date) {
 
-    if (!date) return "∞ Infinito";
+	if (!date) {
 
-    return `<t:${Math.floor(
-        new Date(date).getTime() / 1000
-    )}:F>`;
+		return "∞ Infinito";
+	}
+
+	return `<t:${Math.floor(
+
+		new Date(date).getTime()
+		/
+		1000
+
+	)}:F>`;
 }
 
 function getUserKeys(userId) {
 
-    return db.data.keys.filter(
-        k => k.ownerId === userId
-    );
+	return db.data.keys.filter(
+
+		k =>
+			k.ownerId === userId
+	);
 }
 
 /* ===================================================== */
 /* DISCORD */
 /* ===================================================== */
 
-const client = new Client({
+const client =
+	new Client({
 
-    intents: [
+		intents: [
 
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
-    ]
-});
+			GatewayIntentBits.Guilds,
+
+			GatewayIntentBits.GuildMessages,
+
+			GatewayIntentBits.MessageContent,
+
+			GatewayIntentBits.GuildMembers
+		]
+	});
 
 /* ===================================================== */
 /* READY */
@@ -200,651 +288,858 @@ const client = new Client({
 
 client.on("ready", () => {
 
-    console.log(
-        `Bot online: ${client.user.tag}`
-    );
+	console.log(
+
+		`Bot online: ${client.user.tag}`
+	);
 });
 
 /* ===================================================== */
 /* MESSAGE */
 /* ===================================================== */
 
-client.on("messageCreate", async (message) => {
+client.on(
+	"messageCreate",
+	async (message) => {
 
-    if (message.author.bot) return;
+	if (
+		message.author.bot
+	) return;
 
-    const args =
-        message.content.split(" ");
+	if (
+		!message.content.startsWith(PREFIX)
+	) return;
 
-    const command =
-        args[0].toLowerCase();
+	const args =
+		message.content
+		.trim()
+		.split(/ +/);
 
-    const level =
-        getLevel(message.author.id);
+	const command =
+		args[0]
+		.toLowerCase();
 
-    /* ================================================= */
-    /* HELP */
-    /* ================================================= */
+	const level =
+		getLevel(
+			message.author.id
+		);
 
-    /* ================================================= */
-/* KEYS PANEL */
-/* ================================================= */
+	/* ===================================================== */
+	/* HELP */
+	/* ===================================================== */
 
-if (command === "!keys") {
+	if (command === "!help") {
 
-    if (level < 2) {
+		const embed =
+			new EmbedBuilder()
 
-        return message.reply(
-            "❌ Sem permissão."
-        );
-    }
+			.setTitle(
+				"📘 Help Panel"
+			)
 
-    return message.reply(
+			.setColor("Blue")
 
-        "📋 Painel:\n" +
-        "https://keysystem-1v8t.onrender.com/panel"
-    );
-}
+			.setDescription(
 
-    if (command === "!help") {
+				[
+					"`!key`",
+					"`!help`",
 
-        const embed = new EmbedBuilder()
+					level >= 1
+					? "`!verificar`"
+					: "",
 
-            .setTitle("📘 Help Panel")
+					level >= 2
+					? "`!gerar`\n`!edit`\n`!promover`\n`!rebaixar`\n`!keys`"
+					: ""
+				]
+				.filter(Boolean)
+				.join("\n")
+			);
 
-            .setColor("Blue")
+		return message.reply({
+			embeds: [embed]
+		});
+	}
 
-            .addFields({
+	/* ===================================================== */
+	/* KEY */
+	/* ===================================================== */
 
-                name: "!key",
+	if (command === "!key") {
 
-                value:
-                    "Gerar key baseada nos cargos"
-            });
+		if (
+			message.channel.id !==
+			CHANNEL_KEY
+		) {
 
-        if (level >= 1) {
+			return message.reply(
+				"❌ Use o canal correto."
+			);
+		}
 
-            embed.addFields({
+		const member =
+			message.member;
 
-                name: "!verificar",
+		const result = [];
 
-                value:
-                    "!verificar @user ou id"
-            });
-        }
+		async function processRole(
 
-        if (level >= 2) {
+			roleId,
+			roleType,
+			duration
 
-            embed.addFields(
+		) {
 
-                {
-                    name: "!gerar",
+			if (
+				!member.roles.cache.has(roleId)
+			) return;
 
-                    value:
-                        "!gerar 30d\n!gerar customkey 72h"
-                },
+			const existing =
+				db.data.keys.find(
 
-                {
-                    name: "!edit",
+					k =>
 
-                    value:
-                        "!edit KEY desativar\n!edit KEY 30d"
-                },
+						k.ownerId === message.author.id
+						&&
+						k.roleType === roleType
+						&&
+						!isExpired(k)
+				);
 
-                {
-                    name: "!promover",
+			if (existing) {
 
-                    value:
-                        "!promover @user 1"
-                },
+				result.push({
 
-                {
-                    name: "!rebaixar",
+					type: "existing",
 
-                    value:
-                        "!rebaixar @user"
-                }
-            );
-        }
+					data: existing
+				});
 
-        return message.reply({
-            embeds: [embed]
-        });
-    }
+				return;
+			}
 
-    /* ================================================= */
-    /* KEY */
-    /* ================================================= */
+			const keyData =
+				createKey(duration);
 
-    if (command === "!key") {
+			keyData.ownerId =
+				message.author.id;
 
-        if (
-            message.channel.id !==
-            CHANNEL_KEY
-        ) {
+			keyData.roleType =
+				roleType;
 
-            return message.reply(
-                "❌ Use o canal correto."
-            );
-        }
+			db.data.keys.push(
+				keyData
+			);
 
-        const member = message.member;
+			result.push({
 
-        const generated = [];
+				type: "new",
 
-        /* 7D */
+				data: keyData
+			});
+		}
 
-        if (
-            member.roles.cache.has(
-                ROLE_7D
-            )
-        ) {
+		await processRole(
+			ROLE_7D,
+			"7d",
+			"7d"
+		);
 
-            if (
-                canGenerateRoleKey(
-                    message.author.id,
-                    "7d"
-                )
-            ) {
+		await processRole(
+			ROLE_30D,
+			"30d",
+			"30d"
+		);
 
-                const keyData =
-                    createKey("7d");
+		await processRole(
+			ROLE_INF,
+			"inf",
+			"inf"
+		);
 
-                keyData.ownerId =
-                    message.author.id;
+		await db.write();
 
-                keyData.roleType = "7d";
+		if (
+			result.length <= 0
+		) {
 
-                db.data.keys.push(keyData);
+			return message.reply(
+				"❌ Você não possui cargos."
+			);
+		}
 
-                generated.push(keyData);
-            }
-        }
+		const embed =
+			new EmbedBuilder()
 
-        /* 30D */
+			.setTitle(
+				"🔑 Suas Keys"
+			)
 
-        if (
-            member.roles.cache.has(
-                ROLE_30D
-            )
-        ) {
+			.setColor("Blue");
 
-            if (
-                canGenerateRoleKey(
-                    message.author.id,
-                    "30d"
-                )
-            ) {
+		for (const item of result) {
 
-                const keyData =
-                    createKey("30d");
+			const k =
+				item.data;
 
-                keyData.ownerId =
-                    message.author.id;
+			const active =
+				!k.revoked
+				&&
+				!isExpired(k);
 
-                keyData.roleType = "30d";
+			embed.addFields({
 
-                db.data.keys.push(keyData);
+				name:
+					item.type === "new"
+					? `🆕 ${k.roleType}`
+					: `♻️ ${k.roleType}`,
 
-                generated.push(keyData);
-            }
-        }
+				value:
 
-        /* INF */
+					`Key: \`${k.key}\`\n`
 
-        if (
-            member.roles.cache.has(
-                ROLE_INF
-            )
-        ) {
+					+
 
-            if (
-                canGenerateRoleKey(
-                    message.author.id,
-                    "inf"
-                )
-            ) {
+					`Status: ${
+						active
+						? "🟢 ON"
+						: "🔴 OFF"
+					}\n`
 
-                const keyData =
-                    createKey("inf");
+					+
 
-                keyData.ownerId =
-                    message.author.id;
+					`Expira: ${
+						formatExpire(
+							k.expires
+						)
+					}`
+			});
+		}
 
-                keyData.roleType = "inf";
+		return message.reply({
+			embeds: [embed]
+		});
+	}
 
-                db.data.keys.push(keyData);
+	/* ===================================================== */
+	/* VERIFICAR */
+	/* ===================================================== */
 
-                generated.push(keyData);
-            }
-        }
+	if (command === "!verificar") {
 
-        await db.write();
+		if (level < 1) {
 
-        if (generated.length <= 0) {
+			return message.reply(
+				"❌ Sem permissão."
+			);
+		}
 
-            return message.reply(
-                "❌ Você já gerou todas as keys disponíveis."
-            );
-        }
+		const target =
 
-        const embed = new EmbedBuilder()
+			message.mentions.users.first()
 
-            .setTitle("🔑 Keys Geradas")
+			||
 
-            .setColor("Green");
+			await client.users.fetch(
+				args[1]
+			).catch(() => null);
 
-        for (const k of generated) {
+		if (!target) {
 
-            embed.addFields({
+			return message.reply(
+				"❌ Usuário inválido."
+			);
+		}
 
-                name:
-                    `Plano ${k.roleType}`,
+		const keys =
+			getUserKeys(
+				target.id
+			);
 
-                value:
-                    `Key: \`${k.key}\`\n` +
-                    `Expira: ${formatExpire(k.expires)}`
-            });
-        }
+		const embed =
+			new EmbedBuilder()
 
-        return message.reply({
-            embeds: [embed]
-        });
-    }
+			.setTitle(
+				`📋 Keys de ${target.username}`
+			)
 
-    /* ================================================= */
-    /* VERIFY */
-    /* ================================================= */
+			.setColor("Blue");
 
-    if (command === "!verificar") {
+		if (keys.length <= 0) {
 
-        if (level < 1) {
+			embed.setDescription(
+				"Nenhuma key."
+			);
+		}
 
-            return message.reply(
-                "❌ Sem permissão."
-            );
-        }
+		for (const k of keys) {
 
-        const target =
-            message.mentions.users.first()
-            ||
-            await client.users.fetch(
-                args[1]
-            ).catch(() => null);
+			const active =
+				!k.revoked
+				&&
+				!isExpired(k);
 
-        if (!target) {
+			embed.addFields({
 
-            return message.reply(
-                "❌ Usuário inválido."
-            );
-        }
+				name: k.key,
 
-        const keys =
-            getUserKeys(target.id);
+				value:
 
-        const embed = new EmbedBuilder()
+					`Plano: ${k.roleType}\n`
 
-            .setTitle(
-                `📋 Keys de ${target.username}`
-            )
+					+
 
-            .setColor("Blue");
+					`Status: ${
+						active
+						? "🟢 ON"
+						: "🔴 OFF"
+					}\n`
 
-        if (keys.length <= 0) {
+					+
 
-            embed.setDescription(
-                "Nenhuma key."
-            );
-        }
+					`HWID: ${
+						k.hwid || "N/A"
+					}\n`
 
-        for (const k of keys) {
+					+
 
-            embed.addFields({
+					`Expira: ${
+						formatExpire(
+							k.expires
+						)
+					}`
+			});
+		}
 
-                name: k.key,
+		return message.reply({
+			embeds: [embed]
+		});
+	}
 
-                value:
-                    `Plano: ${k.roleType}\n` +
-                    `Revogada: ${k.revoked}\n` +
-                    `Expira: ${formatExpire(k.expires)}`
-            });
-        }
+	/* ===================================================== */
+	/* KEYS */
+	/* ===================================================== */
 
-        return message.reply({
-            embeds: [embed]
-        });
-    }
+	if (command === "!keys") {
 
-    /* ================================================= */
-    /* GERAR */
-    /* ================================================= */
+		if (level < 2) {
 
-    if (command === "!gerar") {
+			return message.reply(
+				"❌ Sem permissão."
+			);
+		}
 
-        if (level < 2) {
+		if (args[1]) {
 
-            return message.reply(
-                "❌ Sem permissão."
-            );
-        }
+			const found =
+				db.data.keys.find(
 
-        let customKey = null;
-        let duration = null;
+					k =>
+						k.key === args[1]
+				);
 
-        if (args.length === 2) {
+			if (!found) {
 
-            duration = args[1];
-        }
+				return message.reply(
+					"❌ Key não encontrada."
+				);
+			}
 
-        if (args.length >= 3) {
+			const active =
+				!found.revoked
+				&&
+				!isExpired(found);
 
-            customKey = args[1];
-            duration = args[2];
-        }
+			const embed =
+				new EmbedBuilder()
 
-        const keyData =
-            createKey(duration, customKey);
+				.setTitle(
+					"🔍 Key Info"
+				)
 
-        if (!keyData) {
+				.setColor(
+					active
+					? "Green"
+					: "Red"
+				)
 
-            return message.reply(
-                "❌ Tempo inválido."
-            );
-        }
+				.addFields(
 
-        keyData.ownerId =
-            message.author.id;
+					{
+						name: "Key",
+						value:
+							`\`${found.key}\``
+					},
 
-        keyData.roleType =
-            "manual";
+					{
+						name: "Usuário",
+						value:
+							found.ownerId
+					},
 
-        db.data.keys.push(keyData);
+					{
+						name: "Plano",
+						value:
+							found.roleType
+					},
 
-        await db.write();
+					{
+						name: "Status",
+						value:
+							active
+							? "🟢 ON"
+							: "🔴 OFF"
+					},
 
-        return message.reply(
+					{
+						name: "HWID",
+						value:
+							found.hwid || "N/A"
+					},
 
-            `✅ Key gerada:\n\`${keyData.key}\``
-        );
-    }
+					{
+						name: "Criada",
+						value:
+							found.createdAt
+					},
 
-    /* ================================================= */
-    /* EDIT */
-    /* ================================================= */
+					{
+						name: "Expira",
+						value:
+							found.expires || "∞"
+					}
+				);
 
-    if (command === "!edit") {
+			return message.reply({
+				embeds: [embed]
+			});
+		}
 
-        if (level < 2) {
+		return message.reply(
 
-            return message.reply(
-                "❌ Sem permissão."
-            );
-        }
+			"📋 Painel:\n"
+			+
+			"https://keysystem-1v8t.onrender.com/panel"
+		);
+	}
 
-        const key =
-            args[1];
+	/* ===================================================== */
+	/* GERAR */
+	/* ===================================================== */
 
-        const action =
-            args[2];
+	if (command === "!gerar") {
 
-        if (!key || !action) {
+		if (level < 2) {
 
-            return message.reply(
-                "❌ Uso inválido."
-            );
-        }
+			return message.reply(
+				"❌ Sem permissão."
+			);
+		}
 
-        const found =
-            db.data.keys.find(
-                k => k.key === key
-            );
+		let customKey = null;
 
-        if (!found) {
+		let duration = null;
 
-            return message.reply(
-                "❌ Key não encontrada."
-            );
-        }
+		if (args.length === 2) {
 
-        if (
-            action === "desativar"
-        ) {
+			duration = args[1];
+		}
 
-            found.revoked = true;
-        }
+		if (args.length >= 3) {
 
-        else if (
-            action === "reativar"
-        ) {
+			customKey = args[1];
 
-            found.revoked = false;
-        }
+			duration = args[2];
+		}
 
-        else {
+		const keyData =
+			createKey(
+				duration,
+				customKey
+			);
 
-            const parsed =
-                parseDuration(action);
+		if (!keyData) {
 
-            if (!parsed) {
+			return message.reply(
+				"❌ Tempo inválido."
+			);
+		}
 
-                return message.reply(
-                    "❌ Tempo inválido."
-                );
-            }
+		keyData.ownerId =
+			message.author.id;
 
-            found.duration =
-                action;
+		keyData.roleType =
+			"manual";
 
-            if (parsed.infinite) {
+		db.data.keys.push(
+			keyData
+		);
 
-                found.expires = null;
-            }
+		await db.write();
 
-            else {
+		return message.reply(
 
-                found.expires =
-                    new Date(
-                        Date.now() +
-                        parsed.ms
-                    ).toISOString();
-            }
-        }
+			`✅ Key gerada:\n\`${keyData.key}\``
+		);
+	}
 
-        await db.write();
+	/* ===================================================== */
+	/* EDIT */
+	/* ===================================================== */
 
-        return message.reply(
-            "✅ Key editada."
-        );
-    }
+	if (command === "!edit") {
 
-    /* ================================================= */
-    /* PROMOVER */
-    /* ================================================= */
+		if (level < 2) {
 
-    if (command === "!promover") {
+			return message.reply(
+				"❌ Sem permissão."
+			);
+		}
 
-        if (level < 2) {
+		const key =
+			args[1];
 
-            return message.reply(
-                "❌ Sem permissão."
-            );
-        }
+		const action =
+			args[2];
 
-        const target =
-            message.mentions.users.first()
-            ||
-            await client.users.fetch(
-                args[1]
-            ).catch(() => null);
+		if (!key || !action) {
 
-        const targetLevel =
-            Number(args[2]);
+			return message.reply(
+				"❌ Uso inválido."
+			);
+		}
 
-        if (!target) {
+		const found =
+			db.data.keys.find(
 
-            return message.reply(
-                "❌ Usuário inválido."
-            );
-        }
+				k =>
+					k.key === key
+			);
 
-        if (
-            level === 2 &&
-            targetLevel !== 1
-        ) {
+		if (!found) {
 
-            return message.reply(
-                "❌ Level 2 só promove para 1."
-            );
-        }
+			return message.reply(
+				"❌ Key não encontrada."
+			);
+		}
 
-        if (
-            level === 3 &&
-            targetLevel > 2
-        ) {
+		if (
+			action === "desativar"
+		) {
 
-            return message.reply(
-                "❌ Máximo level 2."
-            );
-        }
+			found.revoked = true;
+		}
 
-        setLevel(
-            target.id,
-            targetLevel
-        );
+		else if (
+			action === "reativar"
+		) {
 
-        await db.write();
+			found.revoked = false;
+		}
 
-        return message.reply(
-            `✅ ${target.username} agora é level ${targetLevel}`
-        );
-    }
+		else if (
+			action === "destruir"
+		) {
 
-    /* ================================================= */
-    /* REBAIXAR */
-    /* ================================================= */
+			if (level < 3) {
 
-    if (command === "!rebaixar") {
+				return message.reply(
+					"❌ Apenas level 3."
+				);
+			}
 
-        if (level < 2) {
+			db.data.keys =
+				db.data.keys.filter(
 
-            return message.reply(
-                "❌ Sem permissão."
-            );
-        }
+					k =>
+						k.key !== key
+				);
 
-        const target =
-            message.mentions.users.first()
-            ||
-            await client.users.fetch(
-                args[1]
-            ).catch(() => null);
+			await db.write();
 
-        if (!target) {
+			return message.reply(
+				"🗑️ Key destruída."
+			);
+		}
 
-            return message.reply(
-                "❌ Usuário inválido."
-            );
-        }
+		else {
 
-        const targetLevel =
-            getLevel(target.id);
+			const parsed =
+				parseDuration(
+					action
+				);
 
-        if (
-            level === 2 &&
-            targetLevel !== 1
-        ) {
+			if (!parsed) {
 
-            return message.reply(
-                "❌ Você só pode rebaixar level 1."
-            );
-        }
+				return message.reply(
+					"❌ Tempo inválido."
+				);
+			}
 
-        setLevel(target.id, 0);
+			found.duration =
+				action;
 
-        await db.write();
+			if (
+				parsed.infinite
+			) {
 
-        return message.reply(
-            `✅ ${target.username} voltou para level 0`
-        );
-    }
+				found.expires = null;
+			}
+
+			else {
+
+				found.expires =
+					new Date(
+
+						Date.now()
+						+
+						parsed.ms
+
+					).toISOString();
+			}
+		}
+
+		await db.write();
+
+		return message.reply(
+			"✅ Key editada."
+		);
+	}
+
+	/* ===================================================== */
+	/* PROMOVER */
+	/* ===================================================== */
+
+	if (command === "!promover") {
+
+		if (level < 2) {
+
+			return message.reply(
+				"❌ Sem permissão."
+			);
+		}
+
+		const target =
+
+			message.mentions.users.first()
+
+			||
+
+			await client.users.fetch(
+				args[1]
+			).catch(() => null);
+
+		const targetLevel =
+			parseInt(args[2]);
+
+		if (
+			isNaN(targetLevel)
+		) {
+
+			return message.reply(
+				"❌ Level inválido."
+			);
+		}
+
+		if (!target) {
+
+			return message.reply(
+				"❌ Usuário inválido."
+			);
+		}
+
+		if (
+			level === 2
+			&&
+			targetLevel !== 1
+		) {
+
+			return message.reply(
+				"❌ Level 2 só promove para 1."
+			);
+		}
+
+		if (
+			level === 3
+			&&
+			targetLevel > 2
+		) {
+
+			return message.reply(
+				"❌ Máximo level 2."
+			);
+		}
+
+		setLevel(
+			target.id,
+			targetLevel
+		);
+
+		await db.write();
+
+		return message.reply(
+
+			`✅ ${target.username} agora é level ${targetLevel}`
+		);
+	}
+
+	/* ===================================================== */
+	/* REBAIXAR */
+	/* ===================================================== */
+
+	if (command === "!rebaixar") {
+
+		if (level < 2) {
+
+			return message.reply(
+				"❌ Sem permissão."
+			);
+		}
+
+		const target =
+
+			message.mentions.users.first()
+
+			||
+
+			await client.users.fetch(
+				args[1]
+			).catch(() => null);
+
+		if (!target) {
+
+			return message.reply(
+				"❌ Usuário inválido."
+			);
+		}
+
+		const targetLevel =
+			getLevel(target.id);
+
+		if (
+			level === 2
+			&&
+			targetLevel !== 1
+		) {
+
+			return message.reply(
+				"❌ Você só pode rebaixar level 1."
+			);
+		}
+
+		setLevel(
+			target.id,
+			0
+		);
+
+		await db.write();
+
+		return message.reply(
+
+			`✅ ${target.username} voltou para level 0`
+		);
+	}
 });
 
 /* ===================================================== */
 /* VERIFY API */
 /* ===================================================== */
 
-app.post("/verify", async (req, res) => {
+app.post(
+	"/verify",
+	async (req, res) => {
 
-    const { key, hwid } = req.body;
+	const {
+		key,
+		hwid
+	} = req.body;
 
-    if (!key || !hwid) {
+	if (
+		!key
+		||
+		!hwid
+	) {
 
-        return res.json({
+		return res.json({
 
-            valid: false,
+			valid: false,
 
-            reason: "missing_fields"
-        });
-    }
+			reason:
+				"missing_fields"
+		});
+	}
 
-    const found =
-        db.data.keys.find(
-            k => k.key === key
-        );
+	const found =
+		db.data.keys.find(
 
-    if (!found) {
+			k =>
+				k.key === key
+		);
 
-        return res.json({
+	if (!found) {
 
-            valid: false,
+		return res.json({
 
-            reason: "invalid"
-        });
-    }
+			valid: false,
 
-    if (found.revoked) {
+			reason:
+				"invalid"
+		});
+	}
 
-        return res.json({
+	if (found.revoked) {
 
-            valid: false,
+		return res.json({
 
-            reason: "revoked"
-        });
-    }
+			valid: false,
 
-    if (isExpired(found)) {
+			reason:
+				"revoked"
+		});
+	}
 
-        return res.json({
+	if (
+		isExpired(found)
+	) {
 
-            valid: false,
+		return res.json({
 
-            reason: "expired"
-        });
-    }
+			valid: false,
 
-    if (!found.hwid) {
+			reason:
+				"expired"
+		});
+	}
 
-        found.hwid = hwid;
+	if (!found.hwid) {
 
-        await db.write();
-    }
+		found.hwid =
+			hwid;
 
-    if (found.hwid !== hwid) {
+		await db.write();
+	}
 
-        return res.json({
+	if (
+		found.hwid !== hwid
+	) {
 
-            valid: false,
+		return res.json({
 
-            reason: "hwid_mismatch"
-        });
-    }
+			valid: false,
 
-    return res.json({
+			reason:
+				"hwid_mismatch"
+		});
+	}
 
-        valid: true,
+	return res.json({
 
-        expires: found.expires
-    });
+		valid: true,
+
+		expires:
+			found.expires
+	});
 });
 
 /* ===================================================== */
@@ -853,133 +1148,144 @@ app.post("/verify", async (req, res) => {
 
 app.get("/panel", (req, res) => {
 
-    let html = `
+	let html = `
 
-    <html>
+	<html>
 
-    <head>
+	<head>
 
-    <title>Key Panel</title>
+	<title>Key Panel</title>
 
-    <style>
+	<style>
 
-    body {
+	body {
 
-        background: #0f0f0f;
-        color: white;
-        font-family: Arial;
-        padding: 20px;
-    }
+		background: #0f0f0f;
+		color: white;
+		font-family: Arial;
+		padding: 20px;
+	}
 
-    table {
+	table {
 
-        width: 100%;
-        border-collapse: collapse;
-    }
+		width: 100%;
+		border-collapse: collapse;
+	}
 
-    th, td {
+	th, td {
 
-        border: 1px solid #333;
-        padding: 10px;
-        text-align: left;
-    }
+		border: 1px solid #333;
+		padding: 10px;
+		text-align: left;
+	}
 
-    th {
+	th {
 
-        background: #1f1f1f;
-    }
+		background: #1f1f1f;
+	}
 
-    tr:nth-child(even) {
+	tr:nth-child(even) {
 
-        background: #151515;
-    }
+		background: #151515;
+	}
 
-    .on {
+	.on {
 
-        color: lime;
-        font-weight: bold;
-    }
+		color: lime;
+		font-weight: bold;
+	}
 
-    .off {
+	.off {
 
-        color: red;
-        font-weight: bold;
-    }
+		color: red;
+		font-weight: bold;
+	}
 
-    </style>
+	</style>
 
-    </head>
+	</head>
 
-    <body>
+	<body>
 
-    <h1>Key System Panel</h1>
+	<h1>Key System Panel</h1>
 
-    <table>
+	<table>
 
-    <tr>
+	<tr>
 
-        <th>Key</th>
-        <th>User</th>
-        <th>Duração</th>
-        <th>Status</th>
-        <th>Criação</th>
-        <th>Expira</th>
-        <th>HWID</th>
+	<th>Key</th>
+	<th>User</th>
+	<th>Duração</th>
+	<th>Status</th>
+	<th>Criação</th>
+	<th>Expira</th>
+	<th>HWID</th>
 
-    </tr>
-    `;
+	</tr>
+	`;
 
-    for (const key of db.data.keys) {
+	for (const key of db.data.keys) {
 
-        const active =
-            !key.revoked &&
-            (
-                !key.expires ||
-                new Date(key.expires) > new Date()
-            );
+		const active =
 
-        html += `
+			!key.revoked
 
-        <tr>
+			&&
 
-            <td>${key.key}</td>
+			(
+				!key.expires
+				||
+				new Date(
+					key.expires
+				)
+				>
+				new Date()
+			);
 
-            <td>${key.ownerId}</td>
+		html += `
 
-            <td>${key.duration}</td>
+		<tr>
 
-            <td class="${
-                active ? "on" : "off"
-            }">
+		<td>${key.key}</td>
 
-                ${
-                    active
-                    ? "ON"
-                    : "OFF"
-                }
+		<td>${key.ownerId}</td>
 
-            </td>
+		<td>${key.duration}</td>
 
-            <td>${key.createdAt || "?"}</td>
+		<td class="${
+			active
+			? "on"
+			: "off"
+		}">
 
-            <td>${key.expires || "∞"}</td>
+		${
+			active
+			? "ON"
+			: "OFF"
+		}
 
-            <td>${key.hwid || "N/A"}</td>
+		</td>
 
-        </tr>
-        `;
-    }
+		<td>${key.createdAt || "?"}</td>
 
-    html += `
+		<td>${key.expires || "∞"}</td>
 
-    </table>
+		<td>${key.hwid || "N/A"}</td>
 
-    </body>
+		</tr>
+		`;
+	}
 
-    </html>
-    `;
+	html += `
 
-    res.send(html);
+	</table>
+
+	</body>
+
+	</html>
+	`;
+
+	res.send(html);
 });
 
 /* ===================================================== */
@@ -988,22 +1294,24 @@ app.get("/panel", (req, res) => {
 
 async function start() {
 
-    await db.read();
+	await db.read();
 
-    db.data ||= {
+	db.data ||= {
 
-        keys: [],
-        staff: {}
-    };
+		keys: [],
 
-    client.login(TOKEN);
+		staff: {}
+	};
 
-    app.listen(PORT, () => {
+	client.login(TOKEN);
 
-        console.log(
-            `API rodando na porta ${PORT}`
-        );
-    });
+	app.listen(PORT, () => {
+
+		console.log(
+
+			`API rodando na porta ${PORT}`
+		);
+	});
 }
 
 start();
