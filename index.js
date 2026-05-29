@@ -2,27 +2,47 @@ require("dotenv").config();
 
 const express = require("express");
 const { Client, GatewayIntentBits } = require("discord.js");
-const Database = require("better-sqlite3");
+const { Low } = require("lowdb");
+const { JSONFile } = require("lowdb/node");
 const { v4: uuidv4 } = require("uuid");
 
 const app = express();
 
 app.use(express.json());
 
-app.get("/", (req, res) => {
-    res.send("API online");
+/* ---------------- DATABASE ---------------- */
+
+const adapter = new JSONFile("db.json");
+
+const db = new Low(adapter, {
+    keys: []
 });
 
-const db = new Database("./keys.db");
+async function initDB() {
+    await db.read();
 
-db.prepare(`
-CREATE TABLE IF NOT EXISTS keys (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    key TEXT,
-    discord_id TEXT,
-    expires TEXT
-)
-`).run();
+    db.data ||= {
+        keys: []
+    };
+
+    await db.write();
+}
+
+/* ---------------- HELPERS ---------------- */
+
+function getKey(key) {
+    return db.data.keys.find(k => k.key === key);
+}
+
+function getUserKey(userId) {
+    return db.data.keys.find(k => k.discord_id === userId);
+}
+
+async function saveDB() {
+    await db.write();
+}
+
+/* ---------------- DISCORD BOT ---------------- */
 
 const client = new Client({
     intents: [
@@ -32,72 +52,161 @@ const client = new Client({
     ]
 });
 
+/* CANAL */
+const CHANNEL_ALLOWED = "1509913554692735016";
+
+/* CARGOS */
+const ROLE_7D = "1509913837661458594";
+const ROLE_30D = "1509913884868477039";
+const ROLE_PERM = "1509913892703305748";
+
 client.on("ready", () => {
     console.log(`Bot online: ${client.user.tag}`);
 });
 
-client.on("messageCreate", (message) => {
+client.on("messageCreate", async (message) => {
 
     if (message.author.bot) return;
 
-    if (message.content === "!key") {
+    if (message.content !== "!key") return;
 
-        const key = uuidv4();
+    if (message.channel.id !== CHANNEL_ALLOWED) return;
 
-        const expires = new Date();
-        expires.setDate(expires.getDate() + 30);
+    const member = message.member;
 
-        db.prepare(`
-            INSERT INTO keys (key, discord_id, expires)
-            VALUES (?, ?, ?)
-        `).run(
-            key,
-            message.author.id,
-            expires.toISOString()
-        );
+    if (!member) return;
 
-        message.reply(
-            `🔑 Sua key:\n${key}\n\n⏰ Expira em 30 dias`
+    let plan = null;
+    let days = 0;
+
+    if (member.roles.cache.has(ROLE_PERM)) {
+        plan = "permanent";
+        days = 3650;
+    }
+    else if (member.roles.cache.has(ROLE_30D)) {
+        plan = "30d";
+        days = 30;
+    }
+    else if (member.roles.cache.has(ROLE_7D)) {
+        plan = "7d";
+        days = 7;
+    }
+    else {
+        return message.reply("❌ Você não tem cargo para gerar key.");
+    }
+
+    /* já possui key */
+    const existing = getUserKey(message.author.id);
+
+    if (existing) {
+        return message.reply(
+            `🔑 Sua key já existe:\n\`${existing.key}\``
         );
     }
+
+    const key = uuidv4();
+
+    const expires = new Date();
+
+    expires.setDate(expires.getDate() + days);
+
+    db.data.keys.push({
+        key,
+        discord_id: message.author.id,
+        hwid: null,
+        plan,
+        expires: expires.toISOString(),
+        revoked: false
+    });
+
+    await saveDB();
+
+    message.reply(
+`🔑 Sua key:
+\`${key}\`
+
+📦 Plano: ${plan}
+⏰ Expira em ${days} dias`
+    );
 });
 
-app.post("/verify", (req, res) => {
+/* ---------------- API VERIFY ---------------- */
 
-    const { key } = req.body;
+app.post("/verify", async (req, res) => {
 
-    const row = db
-        .prepare("SELECT * FROM keys WHERE key = ?")
-        .get(key);
+    const { key, hwid } = req.body;
 
-    if (!row) {
+    if (!key || !hwid) {
         return res.json({
             valid: false,
-            reason: "invalid_key"
+            reason: "missing_fields"
         });
     }
 
-    const now = new Date();
-    const expires = new Date(row.expires);
+    const data = getKey(key);
 
-    if (now > expires) {
+    if (!data) {
+        return res.json({
+            valid: false,
+            reason: "invalid"
+        });
+    }
+
+    if (data.revoked) {
+        return res.json({
+            valid: false,
+            reason: "revoked"
+        });
+    }
+
+    if (
+        data.expires &&
+        new Date(data.expires) < new Date()
+    ) {
         return res.json({
             valid: false,
             reason: "expired"
         });
     }
 
-    res.json({
+    /* primeiro login salva HWID */
+    if (!data.hwid) {
+
+        data.hwid = hwid;
+
+        await saveDB();
+    }
+
+    /* outro PC */
+    if (data.hwid !== hwid) {
+
+        return res.json({
+            valid: false,
+            reason: "hwid_mismatch"
+        });
+    }
+
+    return res.json({
         valid: true,
-        discord_id: row.discord_id,
-        expires: row.expires
+        discord_id: data.discord_id,
+        plan: data.plan,
+        expires: data.expires
     });
 });
 
-client.login(process.env.TOKEN);
+/* ---------------- START ---------------- */
 
-const PORT = process.env.PORT || 3000;
+async function start() {
 
-app.listen(PORT, () => {
-    console.log(`API rodando na porta ${PORT}`);
-});
+    await initDB();
+
+    client.login(process.env.TOKEN);
+
+    const PORT = process.env.PORT || 3000;
+
+    app.listen(PORT, () => {
+        console.log(`API rodando na porta ${PORT}`);
+    });
+}
+
+start();
