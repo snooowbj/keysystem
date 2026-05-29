@@ -126,6 +126,61 @@ client.on("messageCreate", async (message) => {
 
 app.post("/verify", async (req, res) => {
 
+    /* ---------------- ADMIN ---------------- */
+
+app.get("/keys", (req, res) => {
+
+    res.json(db.data.keys);
+});
+
+app.post("/revoke", async (req, res) => {
+
+    const { key } = req.body;
+
+    const found =
+        db.data.keys.find(k => k.key === key);
+
+    if (!found) {
+
+        return res.json({
+            success: false,
+            reason: "not_found"
+        });
+    }
+
+    found.revoked = true;
+
+    await db.write();
+
+    res.json({
+        success: true
+    });
+});
+
+app.post("/unrevoke", async (req, res) => {
+
+    const { key } = req.body;
+
+    const found =
+        db.data.keys.find(k => k.key === key);
+
+    if (!found) {
+
+        return res.json({
+            success: false,
+            reason: "not_found"
+        });
+    }
+
+    found.revoked = false;
+
+    await db.write();
+
+    res.json({
+        success: true
+    });
+});
+
     const { key, hwid } = req.body;
 
     if (!key || !hwid) {
