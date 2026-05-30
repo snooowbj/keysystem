@@ -983,18 +983,17 @@ async function start() {
     await db.read();
 
     db.data ||= {
-
         keys: [],
         staff: {}
     };
 
-    client.login(TOKEN);
+    console.log("TOKEN LENGTH:", TOKEN?.length);
+    console.log("TOKEN START:", TOKEN?.slice(0, 15));
+
+    await client.login(TOKEN);
 
     app.listen(PORT, () => {
-
-        console.log(
-            `API rodando na porta ${PORT}`
-        );
+        console.log(`API rodando na porta ${PORT}`);
     });
 }
 
