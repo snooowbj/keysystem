@@ -13,7 +13,7 @@
     {
       "key": "4954b175-3c8d-4ede-8fc5-bf5cb6d76079",
       "hwid": null,
-      "revoked": false,
+      "revoked": true,
       "expires": null,
       "duration": "inf",
       "createdAt": "2026-05-30T00:03:44.458Z",
@@ -29,7 +29,29 @@
       "createdAt": "2026-05-30T00:30:25.316Z",
       "ownerId": "933025502095102012",
       "roleType": "manual"
+    },
+    {
+      "key": "keygustakkj",
+      "hwid": null,
+      "revoked": false,
+      "expires": null,
+      "duration": "inf",
+      "createdAt": "2026-05-30T00:52:17.912Z",
+      "ownerId": "1148263886047420467",
+      "roleType": "manual"
+    },
+    {
+      "key": "keygustakkj",
+      "hwid": null,
+      "revoked": false,
+      "expires": null,
+      "duration": "inf",
+      "createdAt": "2026-05-30T00:53:00.400Z",
+      "ownerId": "1148263886047420467",
+      "roleType": "manual"
     }
   ],
-  "staff": {}
+  "staff": {
+    "1148263886047420467": 2
+  }
 }

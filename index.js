@@ -1,5 +1,5 @@
 require("dotenv").config();
-console.log("TOKEN =", process.env.TOKEN);
+console.log("TOKEN LENGTH:", process.env.TOKEN?.length);
 const express = require("express");
 const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 const { v4: uuidv4 } = require("uuid");
@@ -603,21 +603,8 @@ if (command === "!keys") {
             return message.reply(
                 "❌ Key não encontrada."
             );
-        }  
-
-        if (action === "destruir") {
-
-    db.data.keys =
-        db.data.keys.filter(
-            k => k.key !== key
-        );
-
-    await db.write();
-
-    return message.reply(
-        "🗑️ Key destruída permanentemente."
-    );
-}
+        }
+        
         if (
             action === "desativar"
         ) {
@@ -1000,7 +987,7 @@ async function start() {
         keys: [],
         staff: {}
     };
-    console.log("TOKEN:", process.env.TOKEN ? "OK" : "MISSING");
+
     client.login(TOKEN);
 
     app.listen(PORT, () => {
