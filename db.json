@@ -9,6 +9,16 @@
       "createdAt": "2026-05-29T15:37:35.486Z",
       "ownerId": "933025502095102012",
       "roleType": "30d"
+    },
+    {
+      "key": "4954b175-3c8d-4ede-8fc5-bf5cb6d76079",
+      "hwid": null,
+      "revoked": false,
+      "expires": null,
+      "duration": "inf",
+      "createdAt": "2026-05-30T00:03:44.458Z",
+      "ownerId": "1148263886047420467",
+      "roleType": "inf"
     }
   ],
   "staff": {}

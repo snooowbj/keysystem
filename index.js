@@ -604,7 +604,7 @@ if (command === "!keys") {
                 "❌ Key não encontrada."
             );
         }  
-        
+
         if (action === "destruir") {
 
     db.data.keys =
@@ -1000,7 +1000,7 @@ async function start() {
         keys: [],
         staff: {}
     };
-
+    console.log("TOKEN:", process.env.TOKEN ? "OK" : "MISSING");
     client.login(TOKEN);
 
     app.listen(PORT, () => {
