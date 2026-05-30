@@ -571,90 +571,132 @@ if (command === "!keys") {
     /* EDIT */
     /* ================================================= */
 
-    if (command === "!edit") {
+   /* ================================================= */
+/* EDIT */
+/* ================================================= */
 
-        if (level < 2) {
+if (command === "!edit") {
+
+    if (level < 2) {
+
+        return message.reply(
+            "❌ Sem permissão."
+        );
+    }
+
+    const key =
+        args[1];
+
+    const action =
+        args[2];
+
+    if (!key || !action) {
+
+        return message.reply(
+            "❌ Uso inválido."
+        );
+    }
+
+    const found =
+        db.data.keys.find(
+            k => k.key === key
+        );
+
+    if (!found) {
+
+        return message.reply(
+            "❌ Key não encontrada."
+        );
+    }
+
+    /* DESATIVAR */
+
+    if (
+        action === "desativar"
+    ) {
+
+        found.revoked = true;
+
+        await db.write();
+
+        return message.reply(
+            "🔴 Key desativada."
+        );
+    }
+
+    /* REATIVAR */
+
+    else if (
+        action === "reativar"
+    ) {
+
+        found.revoked = false;
+
+        await db.write();
+
+        return message.reply(
+            "🟢 Key reativada."
+        );
+    }
+
+    /* DESTRUIR */
+
+    else if (
+        action === "destruir"
+    ) {
+
+        db.data.keys =
+            db.data.keys.filter(
+                k => k.key !== key
+            );
+
+        await db.write();
+
+        return message.reply(
+            "🗑️ Key destruída permanentemente."
+        );
+    }
+
+    /* ALTERAR TEMPO */
+
+    else {
+
+        const parsed =
+            parseDuration(action);
+
+        if (!parsed) {
 
             return message.reply(
-                "❌ Sem permissão."
+                "❌ Tempo inválido."
             );
         }
 
-        const key =
-            args[1];
+        found.duration =
+            action;
 
-        const action =
-            args[2];
+        found.revoked = false;
 
-        if (!key || !action) {
+        if (parsed.infinite) {
 
-            return message.reply(
-                "❌ Uso inválido."
-            );
-        }
-
-        const found =
-            db.data.keys.find(
-                k => k.key === key
-            );
-
-        if (!found) {
-
-            return message.reply(
-                "❌ Key não encontrada."
-            );
-        }
-        
-        if (
-            action === "desativar"
-        ) {
-
-            found.revoked = true;
-        }
-
-        else if (
-            action === "reativar"
-        ) {
-
-            found.revoked = false;
+            found.expires = null;
         }
 
         else {
 
-            const parsed =
-                parseDuration(action);
-
-            if (!parsed) {
-
-                return message.reply(
-                    "❌ Tempo inválido."
-                );
-            }
-
-            found.duration =
-                action;
-
-            if (parsed.infinite) {
-
-                found.expires = null;
-            }
-
-            else {
-
-                found.expires =
-                    new Date(
-                        Date.now() +
-                        parsed.ms
-                    ).toISOString();
-            }
+            found.expires =
+                new Date(
+                    Date.now() +
+                    parsed.ms
+                ).toISOString();
         }
 
         await db.write();
 
         return message.reply(
-            "✅ Key editada."
+            `✅ Tempo da key alterado para ${action}.`
         );
     }
+}
 
     /* ================================================= */
     /* PROMOVER */
