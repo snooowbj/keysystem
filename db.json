@@ -19,6 +19,16 @@
       "createdAt": "2026-05-30T00:03:44.458Z",
       "ownerId": "1148263886047420467",
       "roleType": "inf"
+    },
+    {
+      "key": "keygusta",
+      "hwid": null,
+      "revoked": false,
+      "expires": null,
+      "duration": "inf",
+      "createdAt": "2026-05-30T00:30:25.316Z",
+      "ownerId": "933025502095102012",
+      "roleType": "manual"
     }
   ],
   "staff": {}

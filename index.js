@@ -1,5 +1,5 @@
 require("dotenv").config();
-
+console.log("TOKEN =", process.env.TOKEN);
 const express = require("express");
 const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 const { v4: uuidv4 } = require("uuid");
