@@ -586,6 +586,23 @@ generated.push(keyData);
 
     await db.write();
 
+    const fs = require("fs");
+
+console.log(
+    "ARQUIVO EXISTE:",
+    fs.existsSync("./db.json")
+);
+
+console.log(
+    "TAMANHO:",
+    fs.statSync("./db.json").size
+);
+
+console.log(
+    "CONTEUDO:",
+    fs.readFileSync("./db.json", "utf8")
+);
+
     return message.reply(
          `✅ Key gerada:\n\`${keyData.key}\``
     );
