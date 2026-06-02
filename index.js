@@ -495,7 +495,7 @@ if (command === "!keys") {
                 "Nenhuma key."
             );
         }
-
+        
         for (const k of keys) {
 
             embed.addFields({
@@ -559,7 +559,14 @@ if (command === "!keys") {
 
         db.data.keys.push(keyData);
 
+        console.log("SALVANDO KEY:", keyData.key);
+
         await db.write();
+
+        console.log(
+            "TOTAL KEYS:",
+            db.data.keys.length
+        );
 
         return message.reply(
 
