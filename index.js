@@ -572,16 +572,16 @@ generated.push(keyData);
         keyData.roleType =
             "manual";
 
-        db.data.keys.push(keyData);
+       db.data.keys.push(keyData);
 
-        console.log("SALVANDO KEY:", keyData.key);
+    console.log("SALVANDO KEY:", keyData.key);
+    console.log("TOTAL KEYS:", db.data.keys.length);
 
-        await db.write();
+    await db.write();
 
-        console.log(
-            "TOTAL KEYS:",
-            db.data.keys.length
-        );
+    return message.reply(
+         `✅ Key gerada:\n\`${keyData.key}\``
+    );
 
         return message.reply(
 
