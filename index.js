@@ -361,6 +361,13 @@ console.log("TOTAL KEYS:", db.data.keys.length);
 
 await db.write();
 
+console.log("ARQUIVO SALVO");
+await db.read();
+console.log(
+    "APÓS RELEITURA:",
+    db.data.keys.length
+);
+
 generated.push(keyData);
             }
         }
@@ -1056,6 +1063,18 @@ app.get("/panel", (req, res) => {
 async function start() {
 
     await db.read();
+
+    console.log("======== DB LOAD ========");
+
+console.log(
+    JSON.stringify(
+        db.data,
+        null,
+        2
+    )
+);
+
+console.log("=========================");
 
     console.log("DATABASE:");
     console.log(JSON.stringify(db.data, null, 2));
