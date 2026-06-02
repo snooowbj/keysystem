@@ -356,7 +356,12 @@ if (command === "!keys") {
 
                 db.data.keys.push(keyData);
 
-                generated.push(keyData);
+console.log("SALVANDO KEY:", keyData.key);
+console.log("TOTAL KEYS:", db.data.keys.length);
+
+await db.write();
+
+generated.push(keyData);
             }
         }
 
@@ -385,7 +390,12 @@ if (command === "!keys") {
 
                 db.data.keys.push(keyData);
 
-                generated.push(keyData);
+console.log("SALVANDO KEY:", keyData.key);
+console.log("TOTAL KEYS:", db.data.keys.length);
+
+await db.write();
+
+generated.push(keyData);
             }
         }
 
@@ -414,7 +424,12 @@ if (command === "!keys") {
 
                 db.data.keys.push(keyData);
 
-                generated.push(keyData);
+console.log("SALVANDO KEY:", keyData.key);
+console.log("TOTAL KEYS:", db.data.keys.length);
+
+await db.write();
+
+generated.push(keyData);
             }
         }
 
@@ -609,12 +624,14 @@ if (command === "!edit") {
             k => k.key === key
         );
 
-    if (!found) {
+    if (!found.hwid) {
 
-        return message.reply(
-            "❌ Key não encontrada."
-        );
-    }
+    console.log("SALVANDO HWID:", hwid);
+
+    found.hwid = hwid;
+
+    await db.write();
+}
 
     /* DESATIVAR */
 
@@ -817,6 +834,12 @@ if (command === "!edit") {
 
 app.post("/verify", async (req, res) => {
 
+    console.log("=================================");
+    console.log("VERIFY RECEBIDO");
+    console.log(req.body);
+    console.log("TOTAL KEYS NO BANCO:", db.data.keys.length);
+    console.log("=================================");
+
     const { key, hwid } = req.body;
 
     if (!key || !hwid) {
@@ -836,13 +859,13 @@ app.post("/verify", async (req, res) => {
 
     if (!found) {
 
-        return res.json({
+    console.log("KEY NÃO ENCONTRADA:", key);
 
-            valid: false,
-
-            reason: "invalid"
-        });
-    }
+    return res.json({
+        valid: false,
+        reason: "invalid"
+    });
+}
 
     if (found.revoked) {
 
@@ -870,6 +893,9 @@ app.post("/verify", async (req, res) => {
 
         await db.write();
     }
+     
+console.log("HWID BANCO:", found.hwid);
+console.log("HWID RECEBIDO:", hwid);
 
     if (found.hwid !== hwid) {
 
@@ -1030,6 +1056,9 @@ app.get("/panel", (req, res) => {
 async function start() {
 
     await db.read();
+
+    console.log("DATABASE:");
+    console.log(JSON.stringify(db.data, null, 2));
 
     db.data ||= {
         keys: [],
