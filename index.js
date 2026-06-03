@@ -597,8 +597,6 @@ generated.push(keyData);
 
        await KeyModel.create(keyData);
 
-       await KeyModel.create(keyData);
-
 console.log("SALVO NO MONGO:", keyData.key);
 
     const fs = require("fs");
@@ -873,91 +871,35 @@ if (command === "!edit") {
 
 app.post("/verify", async (req, res) => {
 
-    console.log("=================================");
-    console.log("VERIFY RECEBIDO");
-    console.log(req.body);
-    console.log("TOTAL KEYS NO BANCO:", db.data.keys.length);
-    console.log("=================================");
-
     const { key, hwid } = req.body;
 
-    if (!key || !hwid) {
+    const found = await KeyModel.findOne({ key });
 
-        return res.json({
-
-            valid: false,
-
-            reason: "missing_fields"
-        });
-    }
-
-    const found =
-        db.data.keys.find(
-            k => k.key === key
-        );
-        console.log("KEY PROCURADA:", key);
-console.log("TODAS AS KEYS:");
-
-for (const k of db.data.keys) {
-    console.log(k.key);
-}
     if (!found) {
-
-    console.log("KEY NÃO ENCONTRADA:", key);
-
-    return res.json({
-        valid: false,
-        reason: "invalid"
-    });
-}
+        console.log("KEY NÃO ENCONTRADA:", key);
+        return res.json({ valid: false, reason: "invalid" });
+    }
 
     if (found.revoked) {
-
-        return res.json({
-
-            valid: false,
-
-            reason: "revoked"
-        });
+        return res.json({ valid: false, reason: "revoked" });
     }
 
-    if (isExpired(found)) {
-
-        return res.json({
-
-            valid: false,
-
-            reason: "expired"
-        });
+    if (found.expires && new Date(found.expires) < new Date()) {
+        return res.json({ valid: false, reason: "expired" });
     }
 
     if (!found.hwid) {
-
         found.hwid = hwid;
-
-        await db.write();
+        await found.save();
     }
-     
-console.log("HWID BANCO:", found.hwid);
-console.log("HWID RECEBIDO:", hwid);
 
     if (found.hwid !== hwid) {
-
-        return res.json({
-
-            valid: false,
-
-            reason: "hwid_mismatch"
-        });
+        return res.json({ valid: false, reason: "hwid_mismatch" });
     }
 
-    return res.json({
-
-        valid: true,
-
-        expires: found.expires
-    });
+    return res.json({ valid: true, expires: found.expires });
 });
+
 /* ===================================================== */
 /* PANEL */
 /* ===================================================== */
@@ -1124,7 +1066,7 @@ console.log("=========================");
     console.log("TOKEN LENGTH:", TOKEN?.length);
     console.log("TOKEN START:", TOKEN?.slice(0, 15));
 
-    await mongoose.connect(MONGO_URI);
+    /*await mongoose.connect(MONGO_URI);*/
 
 console.log("MongoDB conectado");
 
