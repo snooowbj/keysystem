@@ -30,6 +30,7 @@ const db = new Low(adapter, {
 const TOKEN = process.env.TOKEN;
 
 const PORT = process.env.PORT || 3000;
+const MONGO_URI = process.env.MONGO_URI;
 
 const CHANNEL_KEY = "1509913554692735016";
 
@@ -1104,6 +1105,10 @@ console.log("=========================");
 
     console.log("TOKEN LENGTH:", TOKEN?.length);
     console.log("TOKEN START:", TOKEN?.slice(0, 15));
+
+    await mongoose.connect(MONGO_URI);
+
+console.log("MongoDB conectado");
 
     await client.login(TOKEN);
 
