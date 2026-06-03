@@ -895,7 +895,12 @@ app.post("/verify", async (req, res) => {
         db.data.keys.find(
             k => k.key === key
         );
+        console.log("KEY PROCURADA:", key);
+console.log("TODAS AS KEYS:");
 
+for (const k of db.data.keys) {
+    console.log(k.key);
+}
     if (!found) {
 
     console.log("KEY NÃO ENCONTRADA:", key);
