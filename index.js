@@ -1110,6 +1110,17 @@ console.log("=========================");
 
 console.log("MongoDB conectado");
 
+const test = await mongoose.connection.db
+.collection("keys")
+.insertOne({
+    test: true,
+    createdAt: new Date()
+});
+
+console.log("TESTE MONGO:", test.insertedId);
+
+console.log("MongoDB conectado");
+
     await client.login(TOKEN);
 
     app.listen(PORT, () => {
