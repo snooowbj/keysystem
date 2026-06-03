@@ -1,6 +1,20 @@
 require("dotenv").config();
 
 const mongoose = require("mongoose");
+
+const KeySchema = new mongoose.Schema({
+    key: String,
+    hwid: String,
+    revoked: Boolean,
+    expires: String,
+    duration: String,
+    createdAt: String,
+    ownerId: String,
+    roleType: String
+});
+
+const KeyModel = mongoose.model("Key", KeySchema);
+
 const express = require("express");
 const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 const { v4: uuidv4 } = require("uuid");
@@ -581,12 +595,11 @@ generated.push(keyData);
         keyData.roleType =
             "manual";
 
-       db.data.keys.push(keyData);
+       await KeyModel.create(keyData);
 
-    console.log("SALVANDO KEY:", keyData.key);
-    console.log("TOTAL KEYS:", db.data.keys.length);
+       await KeyModel.create(keyData);
 
-    await db.write();
+console.log("SALVO NO MONGO:", keyData.key);
 
     const fs = require("fs");
 
