@@ -1,5 +1,6 @@
 require("dotenv").config();
-console.log("TOKEN LENGTH:", process.env.TOKEN?.length);
+
+const mongoose = require("mongoose");
 const express = require("express");
 const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 const { v4: uuidv4 } = require("uuid");
